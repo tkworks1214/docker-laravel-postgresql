@@ -1,0 +1,57 @@
+version: '3'
+
+volumes:
+  db-store:
+  vendor-store:
+  node_modules-store:
+
+services:
+  laravel-sample-nginx:
+    container_name: "laravel-sample-nginx"
+    build:
+      context: ./docker/nginx
+    depends_on:
+      - laravel-sample-app
+    ports:
+      - 80:80
+    volumes:
+      - ./:/src
+
+  laravel-sample-app:
+    container_name: "laravel-sample-app"
+    build:
+      context: ./docker/php
+    depends_on:
+      - laravel-sample-postgres
+    ports:
+      - 5173:5173
+    volumes:
+      - ./:/src
+      - node_modules-store:/src/node_modules
+      - vendor-store:/src/vendor
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+
+  laravel-sample-postgres:
+    container_name: laravel-sample-postgres
+    platform: linux/x86_64
+    image: postgres:14
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-store:/var/lib/postgresql/data
+      - ./docker/postgresql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_DB: laravel_sample
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Tokyo
+
+  laravel-sample-adminer:
+    image: adminer:4.7.8
+    container_name: laravel-sample-adminer
+    ports:
+      - "8082:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: laravel-sample-postgres
+      ADMINER_DESIGN: ng9
+    restart: always
